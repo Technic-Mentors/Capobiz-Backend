@@ -9,10 +9,6 @@ const SignupSchema = new Schema({
   email: {
     type: String,
     required: true,
-  },
-  schoolName: {
-      type: String,
-      required: true,
   }
 });
 

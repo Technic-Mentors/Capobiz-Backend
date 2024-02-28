@@ -25,15 +25,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-let hardcodedUser = {
-  email: "technicmentors@gmail.com",
-  password: "$2b$10$ZlpC40NHy3ZO6cRCmCIFTO5.X8V9KxGwqZEnPqnVS.pGcErzR7Tre",
-};
 // Route 1: signup user using: api/auth/signUpUser
 router.post(
   "/signUpUser", async (req, res) => {
     try {
-      const { name, email, schoolName } = req.body;
+      const { name, email } = req.body;
 
       const checkEmail = await Signup.findOne({ email })
       if (checkEmail) {
@@ -41,8 +37,7 @@ router.post(
       }
       const user = await Signup.create({
         name,
-        email,
-        schoolName
+        email
       });
       res.json({ user: user });
     } catch (error) {
