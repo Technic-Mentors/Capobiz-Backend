@@ -8,7 +8,7 @@ const Message = require("../Schema/Message")
 const Category = require("../Schema/Category");
 const multer = require("multer");
 const bcrypt = require("bcrypt");
-
+const cron = require('node-cron');
 // const app = express();
 const router = express.Router();
 const { body, validationResult } = require("express-validator");
@@ -139,107 +139,6 @@ router.get("/getDemoUsers", async (req, res) => {
   }
 });
 
-// Route 1: create user using: api/auth/createuser
-// router.post(
-//   "/createuser",
-//   [
-//     body("name", "Enter a valid name").isLength({ min: 3 }),
-//     body("schoolname", "Enter a valid School name").isLength({ min: 3 }),
-//     body("phoneno", "Phone no must be at least 11 char long").isLength({
-//       min: 11,
-//     }),
-//     body("message", "Enter your message here"),
-//   ],
-//   async (req, res) => {
-//     const errors = validationResult(req);
-//     if (!errors.isEmpty()) {
-//       return res.status(400).json({ errors: errors.array() });
-//     }
-//     try {
-//       const { name, email, schoolname, phoneno, message } = req.body;
-
-//       const user = await User.create({
-//         name,
-//         email,
-//         schoolname,
-//         phoneno,
-//         message,
-//       });
-
-//       res.json({ user });
-//     } catch (error) {
-//       res.status(500).send("Internal error occured");
-//       console.log(error);
-//     }
-//   }
-// );
-
-// router.get("/getallusers", async (req, res) => {
-//   try {
-//     const allusers = await User.find({});
-//     res.json(allusers);
-//   } catch (error) {
-//     console.error(error.message);
-//     res.status(500).send("internal server Error");
-//   }
-// });
-
-// router.get("/getusers/:id", async (req, res) => {
-//   try {
-//     const getUserId = await User.findById(req.params.id)
-//     res.json(getUserId)
-//   } catch (error) {
-//     console.error(error.message);
-//     res.status(500).send("internal server Error");
-//   }
-// })
-
-// router.delete("/deluser/:id", async (req, res) => {
-//   try {
-//     const getUserId = await User.findByIdAndDelete(req.params.id)
-//     if (!getUserId) {
-//       return res.status(404).json({ message: "user not found" })
-//     }
-//     res.status(200).json({ message: "successfully deleted" })
-//   } catch (error) {
-//     console.error(error.message);
-//     res.status(500).send("internal server Error");
-//   }
-// })
-
-// router.get("/edituser/:id", async (req, res) => {
-//   try {
-//     const { name, email, schoolname, phoneno, message } = req.body;
-
-//     const newUser = {}
-//     if (name) {
-//       newUser.name = name
-//     }
-//     if (email) {
-//       newUser.email = email
-//     }
-//     if (schoolname) {
-//       newUser.schoolname = schoolname
-//     }
-//     if (phoneno) {
-//       newUser.phoneno = phoneno
-//     }
-//     if (message) {
-//       newUser.message = message
-//     }
-
-//     let getUserId = await User.findById(req.params.id)
-//     if (!getUserId) {
-//       return res.status(404).json({ message: "user not found" })
-//     }
-
-//     getUserId = await User.findByIdAndUpdate(req.params.id, { $set: newUser }, { new: true })
-//     res.json(getUserId)
-//   } catch (error) {
-//     console.error(error.message);
-//     res.status(500).send("internal server Error");
-//   }
-// })
 // post api start
 router.post(
   "/createpost",
@@ -578,4 +477,27 @@ router.get("/messages", async (req, res) => {
     return res.status(500).send("internal server error")
   }
 })
+
+const updateTicketStatus = async () => {
+  try {
+
+    const now = new Date()
+    console.log(now)
+    const fiveHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+
+    const tickets = await Support.find({ status: "Open" })
+    for (const ticket of tickets) {
+      const lastMessage = await Message.findOne({ ticketId: ticket._id }).sort({ createAt: -1 })
+      if (lastMessage && lastMessage.createAt < fiveHoursAgo) {
+        await Support.updateOne({ _id: ticket._id }, { status: "Close" })
+      }
+    }
+  } catch (error) {
+    console.log("Error updating ticket status:", error)
+  }
+}
+
+// Schedule the function to run every hour
+cron.schedule("0 0 * * *", updateTicketStatus);
+
 module.exports = router;
